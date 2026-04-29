@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Tarefas do Cotidiano</title>
+  <style>
+
+    body {
+      font-family: Arial;
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 10px;
+    }
+
+    h1 { 
+      color: #333
+    }
+    
+    h2 {
+      color: #555
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+
+    .tarefa {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
+    .concluida {
+      background: #eee;
+      text-decoration: line-through;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Tarefas do Cotidiano</h1>
+
+<div id="msg" style="display:none;"></div>
+
+<!-- Insert de Tarefas -->
+ 
+<h2>Nova tarefa</h2>
+
+<input id="nome" placeholder="Nome">
+<textarea id="descricao" placeholder="Descrição"></textarea>
+<input id="responsavel" placeholder="Responsável">
+<input id="tempo" type="number" placeholder="Tempo/Minutos">
+<select id="dificuldade">
+  <option value="">Selecione</option>
+  <option>Fácil</option>
+  <option>Médio</option>
+  <option>Difícil</option>
+</select>
+
+<button onclick="addTarefa()">Adicionar</button>
+
+<hr>
+
+<div id="lista"></div>
+
+<script>
+  // lista principal - sem backend
+  var listaTarefas = [];
+  var editandoId = null;
+
+  function gerarId() {
+    //Verificar !!!
+    return Date.now() + '' + Math.floor(Math.random() * 100);
+  }
+  function mostrarMsg(txt) {
+    var el = document.getElementById('msg');
+    el.innerText = txt;
+    el.style.display = 'block';
+
+    setTimeout(function(){
+      el.style.display = 'none';
+    }, 2000);
+  }
+
+  function addTarefa() {
+    var nome = document.getElementById('nome').value;
+    nome = nome.trim();
+
+    var desc = document.getElementById('descricao').value.trim();
+    var resp = document.getElementById('responsavel').value;
+    resp = resp.trim();
+
+    var tempo = document.getElementById('tempo').value;
+    var dif = document.getElementById('dificuldade').value;
+
+    // validação
+    if (!nome) {
+      alert("Falta o nome");
+      return;
+    }
+
+    if (!resp) { alert('Informe responsável'); return; }
+
+    if (!tempo) {
+      alert("Tempo obrigatório");
+      return;
+    }
+
+    if (!dif) {
+      alert("Escolha dificuldade");
+      return;
+    }
+
+    listaTarefas.push({
+      id: gerarId(),
+      nome: nome,
+      descricao: desc,
+      responsavel: resp,
+      tempo: tempo,
+      dificuldade: dif,
+      concluida: false
+    });
+
+    mostrarMsg("Salvo!");
+
+    document.getElementById('nome').value = "";
+    document.getElementById('descricao').value = "";
+    document.getElementById('responsavel').value = "";
+    document.getElementById('tempo').value = "";
+    document.getElementById('dificuldade').value = "";
+
+    render();
+  }
+
+  function render() {
+    var lista = document.getElementById('lista');
+    lista.innerHTML = '';
+
+    if (listaTarefas.length == 0) {
+      lista.innerHTML = "<p>Nada ainda...</p>";
+      return;
+    }
+
+    // debug rápido
+    console.log("renderizando", listaTarefas.length);
+
+    for (var i = 0; i < listaTarefas.length; i++) {
+      var t = listaTarefas[i];
+
+      var div = document.createElement('div');
+      div.className = 'tarefa';
+
+      if (t.concluida) {
+        div.className += ' concluida';
+      }
+
+      var titulo = document.createElement('strong');
+      titulo.innerText = t.nome;
+
+      div.appendChild(titulo);
+
+      if (t.descricao) {
+        var p = document.createElement('p');
+        p.innerText = t.descricao;
+        div.appendChild(p);
+      }
+
+      var info = document.createElement('p');
+      info.innerText = "Resp: " + t.responsavel + " | " + t.tempo + "min";
+      div.appendChild(info);
+
+      // botoes
+      var btnConcluir = document.createElement('button');
+
+      if (!t.concluida) {
+        btnConcluir.innerText = "ok";
+        btnConcluir.onclick = function(id){
+          return function() {
+            concluir(id);
+          }
+        }(t.id);
+      } else {
+        btnConcluir.innerText = "voltar";
+        btnConcluir.onclick = function(id){
+          return function() {
+            reabrir(id);
+          }
+        }(t.id);
+      }
+
+      div.appendChild(btnConcluir);
+
+      var btnExcluir = document.createElement('button');
+      btnExcluir.innerText = "x";
+
+      btnExcluir.onclick = function(id){
+        return function(){
+          excluir(id);
+        }
+      }(t.id);
+
+      div.appendChild(btnExcluir);
+
+      lista.appendChild(div);
+    }
+  }
+
+  const concluir = (id) => {
+    for (var i = 0; i < listaTarefas.length; i++) {
+      if (listaTarefas[i].id == id) {
+        listaTarefas[i].concluida = true;
+      }
+    }
+    render();
+  }
+
+  var reabrir = function(id) {
+    for (var i = 0; i < listaTarefas.length; i++) {
+      if (listaTarefas[i].id == id) {
+        listaTarefas[i].concluida = false;
+      }
+    }
+    render();
+  }
+
+  function excluir(id) {
+    if (!confirm("Remover isso?")) return;
+
+    var nova = [];
+
+    for (var i = 0; i < listaTarefas.length; i++) {
+      if (listaTarefas[i].id != id) {
+        nova.push(listaTarefas[i]);
+      }
+    }
+
+    listaTarefas = nova;
+
+    mostrarMsg("Excluído");
+    render();
+  }
+
+  // inicial
+  render();
+</script>
+
+</body>
+</html>
